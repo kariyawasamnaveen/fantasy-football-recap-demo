@@ -20,9 +20,7 @@ OPEN_AI_PROJECT_ID = st.secrets["OPENAI_API_PROJECT_ID"]
 OPENAI_API_KEY = st.secrets["OPENAI_COMMISH_API_KEY"]
 
 # Fixed OpenAI client initialization
-client = OpenAI(
-    api_key=OPENAI_API_KEY
-)
+client = OpenAI()
 
 st.set_page_config(
     page_title="Commish.ai",
