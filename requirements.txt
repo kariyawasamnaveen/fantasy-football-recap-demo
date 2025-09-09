@@ -4,3 +4,4 @@ pytz
 yfpy==13.0.0
 git+https://github.com/jeisey/sleeper-api-wrapper-commish.git@master#egg=sleeper-api-wrapper
 streamlit
+httpx==0.24.1
