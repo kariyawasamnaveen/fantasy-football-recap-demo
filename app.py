@@ -1,5 +1,4 @@
 import streamlit as st
-# from openai import OpenAI
 from openai import OpenAI
 from streamlit.logger import get_logger
 from utils import summary_generator
@@ -18,6 +17,10 @@ LOGGER = get_logger(__name__)
 OPEN_AI_ORG_ID = st.secrets["OPENAI_ORG_ID"]
 OPEN_AI_PROJECT_ID = st.secrets["OPENAI_API_PROJECT_ID"]
 OPENAI_API_KEY = st.secrets["OPENAI_COMMISH_API_KEY"]
+
+# Set environment variable for OpenAI
+import os
+os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
 
 # Fixed OpenAI client initialization
 client = OpenAI()
@@ -77,7 +80,7 @@ def main():
                     st.stop()
 
                 # URL for st button with Client ID in query string
-                redirect_uri = "oob" #"oob"  # Out of band # "https://yahoo-ff-test.streamlit.app/" for dev version
+                redirect_uri = "oob"
                 auth_page = f'https://api.login.yahoo.com/oauth2/request_auth?client_id={cid}&redirect_uri={redirect_uri}&response_type=code'
 
                 # Show ST Button to open Yahoo OAuth2 Page
@@ -102,7 +105,6 @@ def main():
                 if auth_code:
                     st.session_state['auth_code'] = auth_code
                     st.success('Authorization code received!')
-                    #st.write(f'Your authorization code is: {auth_code}')
 
                 # Get the token
                 if st.session_state['auth_code'] and not st.session_state['access_token']:
@@ -115,7 +117,7 @@ def main():
 
                     try:
                         r = requests.post('https://api.login.yahoo.com/oauth2/get_token', data=_data, auth=basic)
-                        r.raise_for_status()  # Will raise an exception for HTTP errors
+                        r.raise_for_status()
                         token_data = r.json()
                         st.session_state['access_token'] = token_data.get('access_token', '')
                         st.session_state['refresh_token'] = token_data.get('refresh_token', '')
@@ -128,10 +130,6 @@ def main():
 
                 # Use the access token
                 if st.session_state['access_token']:
-                    #st.write("Now you can use the access token to interact with Yahoo's API.")
-
-                    # Allow user to input league ID
-                    # league_id = st.text_input("Enter your Yahoo Fantasy Sports league ID:")
                     temp_dir = tempfile.mkdtemp()
                     if league_id:
                         # Define the paths to the token and private files
@@ -166,7 +164,6 @@ def main():
             st.slider("Trash Talk Level", 1, 10, key='Trash Talk Level', value=5, help="Scale of 1 to 10, where 1 is friendly banter and 10 is more extreme trash talk")
             submit_button = st.form_submit_button(label='🤖 Generate AI Summary')
 
-    
         # Handling form 
         if submit_button:
             try:
@@ -184,8 +181,8 @@ def main():
                     value = st.session_state.get(field, None)
                     if not value:
                         st.error(f"{field} is required.")
-                        return  # Stop execution if any required field is empty
-                
+                        return
+
                 league_id = st.session_state.get('LeagueID', 'Not provided')
                 character_description = st.session_state.get('Character Description', 'Not provided')
                 trash_talk_level = st.session_state.get('Trash Talk Level', 'Not provided')
@@ -195,9 +192,6 @@ def main():
                 # Moderate the character description
                 progress.text('Validating character...')
                 progress.progress(15)
-                # if not summary_generator.moderate_text(client, character_description):
-                #     st.error("The character description contains inappropriate content. Please try again.")
-                #     return  # Stop execution if moderation fails
                 
                 # Fetching league summary
                 progress.text('Fetching league summary...')
@@ -224,7 +218,7 @@ def main():
                     )
                     LOGGER.debug(summary)
                     LOGGER.info(f"Generated Sleeper Summary: \n{summary}")
-                    st.write(summary) #to delete
+                    st.write(summary)
                 
                 progress.text('Generating AI summary...')
                 progress.progress(50)
@@ -237,23 +231,20 @@ def main():
                     LOGGER.debug(f"Generator object initialized: {gpt4_summary_stream}")
                     
                     with st.chat_message("Commish", avatar="🤖"):
-                        message_placeholder = st.empty()  # Placeholder for streamed message
-                        full_response = ""  # Variable to store the full response as it streams
+                        message_placeholder = st.empty()
+                        full_response = ""
                 
                         # Iterate over the generator streaming GPT-4 responses
                         for chunk in gpt4_summary_stream:
-                            # Ensure that 'chunk' is not None before concatenating
                             if chunk is not None:
-                                full_response += chunk  # Append each streamed chunk to the full response
-                                message_placeholder.markdown(full_response + "▌")  # Display partial message with a cursor-like symbol
-                                LOGGER.debug(f"Received chunk: {chunk}")  # Log each chunk for debugging
+                                full_response += chunk
+                                message_placeholder.markdown(full_response + "▌")
+                                LOGGER.debug(f"Received chunk: {chunk}")
                             
-                        # Once streaming is done, update the message with the complete response
                         message_placeholder.markdown(full_response)
                 
                     LOGGER.debug("GPT Stream completed!")
                     
-                    # Optionally, provide the full response in a code block with a copy button
                     st.markdown("**Click the copy icon** 📋 below in top right corner to copy your summary and paste it wherever you see fit!")
                     st.code(full_response, language="")
                 
